@@ -1,7 +1,6 @@
-# Welcome to your project
 
-## Project info
-
+# Project info
+---
 
 ## How can I edit this code?
 
@@ -36,6 +35,8 @@ npm run dev
 - Click the "Edit" button (pencil icon) at the top right of the file view.
 - Make your changes and commit the changes.
 
+---
+
 **Use GitHub Codespaces**
 
 - Navigate to the main page of your repository.
@@ -43,6 +44,8 @@ npm run dev
 - Select the "Codespaces" tab.
 - Click on "New codespace" to launch a new Codespace environment.
 - Edit files directly within the Codespace and commit and push your changes once you're done.
+
+---
 
 ## What technologies are used for this project?
 
@@ -53,3 +56,4 @@ This project is built with:
 - React
 - shadcn-ui
 - Tailwind CSS
+
