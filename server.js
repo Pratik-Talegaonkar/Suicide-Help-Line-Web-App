@@ -14,7 +14,7 @@ app.use(express.json());
 
 // Google Gemini Setup
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
 const SYSTEM_INSTRUCTION = `
 You are a supportive, empathetic, and calm conversational assistant for a suicide prevention help line application.
