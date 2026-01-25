@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, LogOut, Leaf } from 'lucide-react';
+import { Send, LogOut, Leaf, Volume2, VolumeX, AlertOctagon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import ChatMessage from './ChatMessage';
@@ -8,6 +8,7 @@ import QuoteDisplay from './QuoteDisplay';
 import VoiceInput from './VoiceInput';
 import EmergencyBanner from './EmergencyBanner';
 import BreathingCircle from './BreathingCircle';
+import { useToast } from '@/hooks/use-toast';
 
 interface Message {
   id: string;
@@ -17,39 +18,18 @@ interface Message {
 }
 
 interface ChatInterfaceProps {
-  onLogout: () => void;
-  userName: string;
+  onBack: () => void;
 }
 
-const WEBHOOK_URL = "https://concise-gorilla-grossly.ngrok-free.app/webhook-test/20019ed0-91f4-4154-9f29-031eeeb0caa4";
-
-const sendMessageToAPI = async (userMessage: string, sessionId: string): Promise<string> => {
-  try {
-    const res = await fetch(WEBHOOK_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        message: userMessage,
-        sessionId,
-        source: "lovable-web"
-      })
-    });
-    const data = await res.json();
-    return data.reply || "I'm here for you. Please tell me more about how you're feeling.";
-  } catch (error) {
-    console.error("API Error:", error);
-    return "I'm having trouble connecting right now, but I'm still here for you. Please try again in a moment.";
-  }
-};
-
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout, userName }) => {
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBack }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [showEmergencyOverlay, setShowEmergencyOverlay] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const sessionIdRef = useRef<string>(crypto.randomUUID());
+  const { toast } = useToast();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -63,39 +43,95 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout, userName }) => 
     // Welcome message
     const welcomeMessage: Message = {
       id: 'welcome',
-      text: `Hello ${userName}! 💚 I'm so glad you're here. This is a safe space where you can share anything that's on your mind. I'm here to listen without judgment. How are you feeling today?`,
+      text: `Hello friend. 💚 I'm here to listen. This is a safe, anonymous space. You can share whatever is on your mind. How are you feeling right now?`,
       isUser: false,
       timestamp: new Date()
     };
     setMessages([welcomeMessage]);
-  }, [userName]);
+
+    // Initial speak (if browser allows autoplay, otherwise requires interaction)
+    // speakText(welcomeMessage.text); // Commented out to avoid startling user immediately, can enable if preferred.
+  }, []);
+
+  const speakText = (text: string) => {
+    if (isMuted || !window.speechSynthesis) return;
+
+    // Cancel current speech
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    // Try to select a calm voice if available, otherwise default
+    // Note: Voices are browser dependent.
+    utterance.rate = 0.9; // Slightly slower
+    utterance.pitch = 1.0;
+
+    window.speechSynthesis.speak(utterance);
+  };
 
   const handleSend = async () => {
     if (!inputValue.trim()) return;
 
+    const messageToSend = inputValue;
     const userMessage: Message = {
       id: Date.now().toString(),
-      text: inputValue,
+      text: messageToSend,
       isUser: true,
       timestamp: new Date()
     };
 
     setMessages(prev => [...prev, userMessage]);
-    const messageToSend = inputValue;
     setInputValue('');
     setIsTyping(true);
 
-    // Get response from API
-    const reply = await sendMessageToAPI(messageToSend, sessionIdRef.current);
-    
-    const botMessage: Message = {
-      id: (Date.now() + 1).toString(),
-      text: reply,
-      isUser: false,
-      timestamp: new Date()
-    };
-    setMessages(prev => [...prev, botMessage]);
-    setIsTyping(false);
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: messageToSend }),
+      });
+
+      if (!response.ok) throw new Error('Network response was not ok');
+
+      const data = await response.json();
+
+      const botMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: data.reply,
+        isUser: false,
+        timestamp: new Date()
+      };
+
+      setMessages(prev => [...prev, botMessage]);
+      speakText(data.reply);
+
+      if (data.isRiskDetected) {
+        setShowEmergencyOverlay(true);
+        toast({
+          title: "Safety Notice",
+          description: "We noticed you might be in distress. Please view the emergency resources.",
+          variant: "destructive"
+        });
+      }
+
+    } catch (error) {
+      console.error("Chat Error:", error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: "I'm having trouble connecting right now, but I'm still here. Please try again or check the emergency resources if you need immediate help.",
+        isUser: false,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+      toast({
+        title: "Connection Error",
+        description: "Could not connect to the assistant.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsTyping(false);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -110,7 +146,30 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout, userName }) => 
   };
 
   return (
-    <div className="min-h-screen bg-gradient-calm flex flex-col">
+    <div className="min-h-screen bg-gradient-calm flex flex-col relative">
+      {/* Emergency Overlay if Risk Detected */}
+      {showEmergencyOverlay && (
+        <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm flex flex-col items-center justify-center p-4 animate-in fade-in zoom-in duration-300">
+          <div className="max-w-md w-full bg-card border-2 border-destructive/50 rounded-2xl p-6 shadow-2xl text-center space-y-6">
+            <div className="flex justify-center">
+              <AlertOctagon className="h-16 w-16 text-destructive animate-pulse" />
+            </div>
+            <h2 className="text-2xl font-bold text-foreground">We Care About You</h2>
+            <p className="text-muted-foreground">
+              It sounds like you're going through a really hard time. Please please reach out to professional support right now.
+            </p>
+            <EmergencyBanner />
+            <Button
+              variant="outline"
+              onClick={() => setShowEmergencyOverlay(false)}
+              className="w-full mt-4"
+            >
+              I understand, continue chat
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="bg-card/80 backdrop-blur-md border-b border-border px-4 py-4 sticky top-0 z-10">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
@@ -120,13 +179,26 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout, userName }) => 
             </div>
             <div>
               <h1 className="font-serif text-lg text-foreground">Your Safe Space</h1>
-              <p className="text-xs text-muted-foreground">Here for you, always</p>
+              <p className="text-xs text-muted-foreground">Anonymous Support Companion</p>
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={onLogout} className="text-muted-foreground">
-            <LogOut className="w-4 h-4 mr-2" />
-            Leave
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                setIsMuted(!isMuted);
+                window.speechSynthesis.cancel();
+              }}
+              title={isMuted ? "Unmute Voice" : "Mute Voice"}
+            >
+              {isMuted ? <VolumeX className="w-4 h-4 text-muted-foreground" /> : <Volume2 className="w-4 h-4 text-primary" />}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={onBack} className="text-muted-foreground">
+              <LogOut className="w-4 h-4 mr-2" />
+              Exit
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -145,7 +217,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onLogout, userName }) => 
               <BreathingCircle size="lg" className="mb-8" />
               <p className="text-muted-foreground text-center">
                 Take a moment to breathe...<br />
-                I'm here when you're ready to talk.
+                I'm here when you're ready.
               </p>
             </div>
           )}

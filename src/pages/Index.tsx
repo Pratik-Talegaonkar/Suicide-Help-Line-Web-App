@@ -1,19 +1,17 @@
 import React, { useState } from 'react';
 import { Leaf, MessageCircle, AlertTriangle, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import RegistrationForm from '@/components/RegistrationForm';
 import ChatInterface from '@/components/ChatInterface';
 import EmergencyBanner from '@/components/EmergencyBanner';
 import BreathingCircle from '@/components/BreathingCircle';
 
-type AppState = 'welcome' | 'register' | 'chat';
+type AppState = 'welcome' | 'chat';
 
 const Index = () => {
   const [appState, setAppState] = useState<AppState>('welcome');
-  const [userName, setUserName] = useState('Friend');
 
   if (appState === 'chat') {
-    return <ChatInterface onLogout={() => setAppState('welcome')} userName={userName} />;
+    return <ChatInterface onBack={() => setAppState('welcome')} />;
   }
 
   return (
@@ -29,7 +27,7 @@ const Index = () => {
               </div>
             </div>
           </div>
-          
+
           <h1 className="font-serif text-4xl md:text-5xl text-foreground mb-4 leading-tight">
             You Are Not Alone
           </h1>
@@ -38,81 +36,62 @@ const Index = () => {
           </p>
         </header>
 
-        {appState === 'welcome' && (
-          <div className="space-y-8 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-            {/* Main CTA Card */}
-            <div className="bg-card/80 backdrop-blur-sm border border-border rounded-3xl p-8 md:p-10 shadow-warm text-center">
-              <div className="flex items-center justify-center gap-2 mb-4 text-primary">
-                <MessageCircle className="w-5 h-5" />
-                <span className="font-medium">Talk to Someone Who Cares</span>
-              </div>
-              
-              <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-                Our companion is here to listen, support, and help you through difficult moments. 
-                Your conversations are private and never stored.
-              </p>
-
-              <Button
-                variant="warm"
-                size="lg"
-                onClick={() => setAppState('register')}
-                className="px-8"
-              >
-                <Heart className="w-5 h-5 mr-2" />
-                Start a Conversation
-              </Button>
+        <div className="space-y-8 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+          {/* Main CTA Card */}
+          <div className="bg-card/80 backdrop-blur-sm border border-border rounded-3xl p-8 md:p-10 shadow-warm text-center">
+            <div className="flex items-center justify-center gap-2 mb-4 text-primary">
+              <MessageCircle className="w-5 h-5" />
+              <span className="font-medium">Talk to Someone Who Cares</span>
             </div>
 
-            {/* Important Notices */}
-            <div className="space-y-4">
-              <div className="bg-peach/50 border border-peach rounded-2xl p-5 flex items-start gap-4">
-                <div className="p-2 bg-primary/10 rounded-full shrink-0 mt-0.5">
-                  <AlertTriangle className="w-4 h-4 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-medium text-foreground mb-1">Important to Know</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    This is an emotional support companion and <strong>not a replacement for professional help</strong>. 
-                    For clinical concerns, please reach out to a licensed mental health professional.
-                  </p>
-                </div>
-              </div>
+            <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+              Our AI companion is here to listen, support, and help you through difficult moments.
+              Your conversations are private, anonymous, and never stored.
+            </p>
 
-              <div className="bg-sage-muted/50 border border-sage/40 rounded-2xl p-5 flex items-start gap-4">
-                <div className="p-2 bg-sage/30 rounded-full shrink-0 mt-0.5">
-                  <Heart className="w-4 h-4 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-medium text-foreground mb-1">Need Immediate Help?</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    If you're in crisis or need immediate assistance, please contact your local emergency services 
-                    or one of the helplines below. You matter, and help is available.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Emergency Helplines */}
-            <EmergencyBanner />
-          </div>
-        )}
-
-        {appState === 'register' && (
-          <div className="animate-fade-in-up">
-            <div className="bg-card/80 backdrop-blur-sm border border-border rounded-3xl p-8 md:p-10 shadow-warm">
-              <RegistrationForm 
-                onComplete={() => setAppState('chat')}
-              />
-            </div>
-
-            <button
-              onClick={() => setAppState('welcome')}
-              className="mt-6 text-muted-foreground text-sm hover:text-foreground transition-colors mx-auto block"
+            <Button
+              variant="warm"
+              size="lg"
+              onClick={() => setAppState('chat')}
+              className="px-8"
             >
-              ← Go back
-            </button>
+              <Heart className="w-5 h-5 mr-2" />
+              Start a Conversation
+            </Button>
           </div>
-        )}
+
+          {/* Important Notices */}
+          <div className="space-y-4">
+            <div className="bg-peach/50 border border-peach rounded-2xl p-5 flex items-start gap-4">
+              <div className="p-2 bg-primary/10 rounded-full shrink-0 mt-0.5">
+                <AlertTriangle className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-medium text-foreground mb-1">Important to Know</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  This is an emotional support AI and <strong>not a replacement for professional help</strong>.
+                  For clinical concerns, please reach out to a licensed mental health professional.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-sage-muted/50 border border-sage/40 rounded-2xl p-5 flex items-start gap-4">
+              <div className="p-2 bg-sage/30 rounded-full shrink-0 mt-0.5">
+                <Heart className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-medium text-foreground mb-1">Need Immediate Help?</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  If you're in crisis or need immediate assistance, please contact your local emergency services
+                  or one of the helplines below. You matter, and help is available.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Emergency Helplines */}
+          <EmergencyBanner />
+        </div>
 
         {/* Footer */}
         <footer className="mt-16 pt-8 border-t border-border/50 text-center animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
