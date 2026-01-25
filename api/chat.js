@@ -98,8 +98,8 @@ Example of a safety response:
     } catch (error) {
         console.error('Error calling Gemini:', error);
         res.status(500).json({
-            error: 'Failed to generate response',
-            reply: "I'm having a little trouble connecting right now, but I'm still here. Could you try saying that again?"
+            error: `Gemini API Error: ${error.message}`,
+            reply: "I'm having a little trouble connecting right now."
         });
     }
 }
