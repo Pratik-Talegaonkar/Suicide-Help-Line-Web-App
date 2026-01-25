@@ -1,17 +1,16 @@
-import OpenAI from 'openai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Vercel Serverless Function
 export default async function handler(req, res) {
     // CORS Configuration
     res.setHeader('Access-Control-Allow-Credentials', true);
-    res.setHeader('Access-Control-Allow-Origin', '*'); // Adjust this for production if needed
+    res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
     res.setHeader(
         'Access-Control-Allow-Headers',
         'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
     );
 
-    // Handle OPTIONS request
     if (req.method === 'OPTIONS') {
         res.status(200).end();
         return;
@@ -27,8 +26,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Message is required' });
     }
 
-    // System Prompt & Safety Logic (Mirrors server.js)
-    const SYSTEM_PROMPT = `
+    const SYSTEM_INSTRUCTION = `
 You are a supportive, empathetic, and calm conversational assistant for a suicide prevention help line application.
 Your goal is to listen, provide comfort, and encourage the user to seek professional help if they are in danger.
 You are NOT a therapist and you are NOT a medical professional. Do NOT give medical advice or diagnosis.
@@ -56,7 +54,6 @@ Example of a safety response:
     ];
 
     try {
-        // Check for high risk keywords
         let isRiskDetected = false;
         for (const regex of HIGH_RISK_KEYWORDS) {
             if (regex.test(message)) {
@@ -65,21 +62,28 @@ Example of a safety response:
             }
         }
 
-        const openai = new OpenAI({
-            apiKey: process.env.OPENAI_API_KEY,
-        });
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-        const completion = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
-            messages: [
-                { role: "system", content: SYSTEM_PROMPT },
-                { role: "user", content: message },
+        const chat = model.startChat({
+            history: [
+                {
+                    role: "user",
+                    parts: [{ text: SYSTEM_INSTRUCTION }]
+                },
+                {
+                    role: "model",
+                    parts: [{ text: "Understood. I am ready to be a supportive, empathetic companion." }]
+                }
             ],
-            temperature: 0.7,
-            max_tokens: 300,
+            generationConfig: {
+                maxOutputTokens: 300,
+            },
         });
 
-        const botReply = completion.choices[0].message.content;
+        const result = await chat.sendMessage(message);
+        const response = await result.response;
+        const botReply = response.text();
 
         res.status(200).json({
             reply: botReply,
@@ -87,7 +91,7 @@ Example of a safety response:
         });
 
     } catch (error) {
-        console.error('Error calling OpenAI:', error);
+        console.error('Error calling Gemini:', error);
         res.status(500).json({
             error: 'Failed to generate response',
             reply: "I'm having a little trouble connecting right now, but I'm still here. Could you try saying that again?"
