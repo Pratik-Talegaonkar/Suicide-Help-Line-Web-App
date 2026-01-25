@@ -92,9 +92,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBack }) => {
         body: JSON.stringify({ message: messageToSend }),
       });
 
-      if (!response.ok) throw new Error('Network response was not ok');
+      const data = await response.json().catch(() => ({}));
 
-      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || `Server Error (${response.status})`);
+      }
 
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -115,18 +117,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onBack }) => {
         });
       }
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Chat Error:", error);
+      const errorMessageLine = error.message || "Connection failed";
+
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: "I'm having trouble connecting right now, but I'm still here. Please try again or check the emergency resources if you need immediate help.",
+        text: `Error: ${errorMessageLine}. Please try again later.`,
         isUser: false,
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
       toast({
         title: "Connection Error",
-        description: "Could not connect to the assistant.",
+        description: errorMessageLine,
         variant: "destructive"
       });
     } finally {

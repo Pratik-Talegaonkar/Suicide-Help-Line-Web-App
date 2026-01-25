@@ -62,6 +62,11 @@ Example of a safety response:
             }
         }
 
+        if (!process.env.GEMINI_API_KEY) {
+            console.error('Error: GEMINI_API_KEY is missing.');
+            return res.status(500).json({ error: 'Server Config Error: GEMINI_API_KEY is missing.' });
+        }
+
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
