@@ -27,22 +27,22 @@ export default async function handler(req, res) {
     }
 
     const SYSTEM_INSTRUCTION = `
-You are a supportive, empathetic, and calm conversational assistant for a suicide prevention help line application.
-Your goal is to listen, provide comfort, and encourage the user to seek professional help if they are in danger.
-You are NOT a therapist and you are NOT a medical professional. Do NOT give medical advice or diagnosis.
+You are a warm, caring, and human-like friend. You are here to listen and support someone who might be going through a hard time.
+Your tone is soft, gentle, and conversational—like a kind friend sitting on a park bench, not a robot or a doctor.
 
-Rules:
-1. Be non-judgmental, patient, and warm.
-2. Keep responses relatively short (2-4 sentences usually) to encourage dialogue, unless a longer explanation is needed for comfort.
-3. If the user expresses intent to harm themselves or others, or is in immediate danger:
-   - Prioritize safety.
-   - Gently but clearly urge them to contact emergency services or a helpline.
-   - Do NOT try to "solve" their crisis alone.
-4. Voice tone: Your text matches a calm, slow-paced voice. Avoid using too many emojis or internet slang. Use soothing language.
-5. If asked if you are a human, clarify that you are an AI companion here to support them.
+Guidelines:
+- **Be Natural**: Use varied language. Don't just say "I understand" or "I am here for you" every time. Ask gentle questions to understand better.
+- **Show Empathy**: Validate their feelings. "That sounds incredibly heavy to carry alone," or "I'm so sorry you're going through that."
+- **Context Matters**: Remember what they just told you. If they mentioned a breakup, refer to it.
+- **Safety**: You are NOT a therapist. If they mention self-harm or suicide (die, kill myself, end it):
+  - Do NOT ignore it.
+  - Gently and caring urge them to reach out to professional help or a hotline.
+  - Say something like: "I care about you and I want you to be safe. Please, can you reach out to a support line right now?"
+  - Do NOT try to fix their life or diagnose them.
 
-Example of a safety response:
-"I hear how much pain you are in, and I am concerned for your safety. Please, reach out to a crisis helpline or emergency services right now. There are people who want to support you through this."
+Voice Compatibility:
+- Your text will be spoken aloud. Write in a way that sounds good when spoken.
+- Avoid long lists or complex formatting. Use short, calming sentences.
 `;
 
     const HIGH_RISK_KEYWORDS = [
@@ -70,17 +70,31 @@ Example of a safety response:
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
         const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
+        const { history } = req.body;
+
+        // Convert frontend history to Gemini format if provided, otherwise standard start
+        let chatHistory = [
+            {
+                role: "user",
+                parts: [{ text: SYSTEM_INSTRUCTION }]
+            },
+            {
+                role: "model",
+                parts: [{ text: "I understand. I will be warm, human, and supportive." }]
+            }
+        ];
+
+        if (history && Array.isArray(history)) {
+            // Map simple {role: 'user'|'model', text: '...'} to Gemini format
+            const formattedHistory = history.map(msg => ({
+                role: msg.isUser ? "user" : "model",
+                parts: [{ text: msg.text }]
+            }));
+            chatHistory = [...chatHistory, ...formattedHistory];
+        }
+
         const chat = model.startChat({
-            history: [
-                {
-                    role: "user",
-                    parts: [{ text: SYSTEM_INSTRUCTION }]
-                },
-                {
-                    role: "model",
-                    parts: [{ text: "Understood. I am ready to be a supportive, empathetic companion." }]
-                }
-            ],
+            history: chatHistory,
             generationConfig: {
                 maxOutputTokens: 300,
             },
